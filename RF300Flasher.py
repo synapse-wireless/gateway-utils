@@ -340,24 +340,24 @@ def flash(flashParams):
     import sys, os
     sys.path.append('..')
     from apy import EventScheduler
-    
+
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(msecs)03d %(levelname)-8s %(name)-8s %(message)s', datefmt='%H:%M:%S')
-    
+
     evScheduler = EventScheduler.EventScheduler()
-    
+
     flasher = Si1000Flasher(flashParams.imageFilename, evScheduler, port=flashParams.comport)
     evScheduler.scheduleEvent(flasher.poll)
-   
+
     #os.system("echo 0 > /sys/class/gpio/gpio75/value")
     #time.sleep(0.5)
     #os.system("echo 1 > /sys/class/gpio/gpio75/value")
-    
+
     os.system("sh resetBridge.sh")
     while flasher.finishedSuccessfully is False:
         #print "still flashing."
         evScheduler.poll()
         time.sleep(0.005)
-                                                    
+
 
 
 if __name__ == '__main__':

@@ -122,7 +122,7 @@ class IntelHexReader(object):
             if not index == 0:
                 if index == counter:
                     #print "length of record is %d index is: %X record is %s counter is %X" % (len(record), index, record, counter)
-                    
+
                     bin = array.array('B', binascii.unhexlify(record[1:]))
                     #print "length of bin is %d" % len(bin)
 
@@ -186,7 +186,7 @@ class IntelHexReader(object):
                 #if addr > 0x8000:
                 #    print "Got Big Address in file at %d" % (addr)
 
-                # check the checksum of the data by adding up the entire sum of bin 
+                # check the checksum of the data by adding up the entire sum of bin
                 # not sure what the plus 1 does and % with 256 to get the value left
                 # to compare to the value at the end of the record
                 crc = (~sum(bin)+1) % 2**8
@@ -257,7 +257,7 @@ Options:
     size = None
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hp:r:l:s:", 
+        opts, args = getopt.getopt(sys.argv[1:], "hp:r:l:s:",
 				["help", "pad=", "range=",
 				 "length=", "size="])
 
@@ -325,7 +325,7 @@ Options:
     # Now we need to sort the data in the list.
     #reader.data.sort(comIntelData)
 
-    #print "Combined Files" 
+    #print "Combined Files"
     #print "length is %d" % (len(reader.data))
     #for n in reader.data:
     #  print  binascii.hexlify(n.address), binascii.hexlify(n.data)

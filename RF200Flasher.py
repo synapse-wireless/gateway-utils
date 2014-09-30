@@ -84,9 +84,9 @@ class ATMegaFlasher(object):
         self.type = type
         self.port = port
         self.serialDrv.setOutputType(self.type, self.port)
-        
+
         print self.serialDrv.serial
-        
+
         self.verifyWrite = verifyWrite
         self.writeRetries = writeRetries
         self._lastData = datetime.datetime.now()+datetime.timedelta(hours=24)
@@ -353,28 +353,28 @@ def flash(flashParams):
     #import sys
     #sys.path.append('..')
     from apy import EventScheduler
-    
+
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(msecs)03d %(levelname)-8s %(name)-8s %(message)s', datefmt='%H:%M:%S')
-    
+
 #    snapStick = PyserialDriver.PyserialWrapper.TYPE_SNAPSTICK
 #    driver = PyserialDriver.PyserialWrapper(ouputType=snapStick, port=flashParams.comport, dllPath='.')
-    
+
 #    print driver
 #    print driver.serial
 #    resetBridge()
     evScheduler = EventScheduler.EventScheduler()
     flasher = ATMegaFlasher(flashParams.imageFilename, evScheduler, port=flashParams.comport)
     evScheduler.scheduleEvent(flasher.poll)
-    
+
     os.system("sh resetBridge.sh")
     #resetBridge(flasher)
     #print flasher.serialDrv.serial
     #dir(flasher.serialDrv.serial)
-    
+
     while flasher.finishedSuccessfully is False:
         evScheduler.poll()
         time.sleep(0.005)
-    #cProfile.run('evScheduler.poll()', "C:\\synapse\\Portal\\trunk\\FlasherProfile.tmp")    
+    #cProfile.run('evScheduler.poll()', "C:\\synapse\\Portal\\trunk\\FlasherProfile.tmp")
 
 if __name__ == '__main__':
     #import cProfile
@@ -392,6 +392,3 @@ if __name__ == '__main__':
         evScheduler.poll()
         time.sleep(0.005)
     #cProfile.run('evScheduler.poll()', "C:\\synapse\\Portal\\trunk\\FlasherProfile.tmp")
-    
-
-

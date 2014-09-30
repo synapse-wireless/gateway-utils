@@ -18,7 +18,7 @@ RFENGINE_IDENT = "RFEngine"
 #class FlashParams:
 #    def __init__(self, imageFilename, comPort):
 #        self.imageFilename = imageFilename
-#        self.comPort = comPort 
+#        self.comPort = comPort
 
 class Hcs08Flasher(object):
     IDENT_COMMAND = "\x49"
@@ -28,7 +28,7 @@ class Hcs08Flasher(object):
     READ_COMMAND = "\x52"
     QUIT_COMMAND = "\x51"
 
-    def __init__(self, filename, scheduler=None, finishedCallback=None, serialDrv=None, verifyWrite=True, writeRetries=3, timeout=2, 
+    def __init__(self, filename, scheduler=None, finishedCallback=None, serialDrv=None, verifyWrite=True, writeRetries=3, timeout=2,
                  type=PyserialDriver.PyserialWrapper.TYPE_PYSERIAL, port=0, pathToUsbLibrary='.', file_ident=None):
         self.s19 = pys19.S19(byteBoundary=64)
         self.s19.read(filename)
@@ -148,7 +148,7 @@ class Hcs08Flasher(object):
                     self._tellError(Exception("Unsupported bootloader version"))
                 if __debug__:
                     log.debug("Found: %s" % self.identData[20:-1])
-                if (self.file_ident is not None and 
+                if (self.file_ident is not None and
                     self.identData[20:-1] != DEFAULT_IDENT and
                     self.file_ident != self.identData[20:-1]):
                     self._tellError(Exception("The selected file is not supported on this platform"))
@@ -271,19 +271,19 @@ class Hcs08Flasher(object):
 def flash(flashParams):
     """This code is needed to run as a stand alone program"""
     from apy import EventScheduler
-    
+
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(msecs)03d %(levelname)-8s %(name)-8s %(message)s', datefmt='%H:%M:%S')
-    
+
     evScheduler = EventScheduler.EventScheduler()
     flasher = Hcs08Flasher(flashParams.imageFilename, evScheduler, port=flashParams.comport)
     evScheduler.scheduleEvent(flasher.poll)
-    
+
     # os.system("echo 0 > /sys/class/gpio/gpio75/value")
     # time.sleep(0.5)
     # os.system("echo 1 > /sys/class/gpio/gpio75/value")
-    
+
     os.system("sh resetBridge.sh")
-    
+
     # startTime = time.time()
     firstTime = True
     while flasher.finishedSuccessfully == False:
@@ -297,5 +297,3 @@ def flash(flashParams):
 if __name__ == '__main__':
     flashParams = FlashParams('RF100_SNAP.S19', port='/dev/ttyS1')
     flash(flashParams)
-      
-

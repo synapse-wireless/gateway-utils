@@ -35,7 +35,7 @@ def s19_checksum(line):
     bytes = [int(line[i*2:i*2+2], 16) for i in range(1, length+1)]
     return ~sum(bytes) & 0xff
 
-    
+
 
 def buildMagicHRec(cmdChar, addr='02F0'):
     magicKey = '524D44454D474B42'
@@ -45,7 +45,7 @@ def buildMagicHRec(cmdChar, addr='02F0'):
     #text = ':020000020000FC\n' # Header
     text = ':%s%02X\n' % (record, crc)
     text += ':00000001FF' # End of file record
-    
+
     return text
 
 def buildMagicSRec(cmdChar):
@@ -132,9 +132,9 @@ def createFilesAndFilePaths(args, MAGIC_KEY_CMD):
 #
 def parseArgs():
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="E10 Bridge Flashing Utility  \n Usage:  python FlashBridge.py [bridgeType] -i [imagename] -p [port]")
-    
+
     radioTypeGroup = parser.add_mutually_exclusive_group(required=True)
     radioTypeGroup.add_argument("-rf100", action="store_true", help="Specify the bridge node as an RF100")
     radioTypeGroup.add_argument("-rf200", action="store_true", help="Specify the bridge node as an RF200")
@@ -145,10 +145,10 @@ def parseArgs():
     flashTypeGroup.add_argument("-e", "--erase", dest="erase", action="store_true", required=False, help="Erase the currently loaded SnapPy script.")
     flashTypeGroup.add_argument("-i", "--image", dest="image", metavar="imageName", action="store", required=False, help="The image file to flash to the bridge node.")
     flashTypeGroup.add_argument("-nv", "--defaultnv", dest="defaultnv", action="store_true", required=False, help="Reset the device's NV params.")
-    
+
     parser.add_argument("-p", "--port", dest="port", metavar="comport", action="store", required=True, help="Required:  The COM or USB port to use to communicate with the bridge node.")
-    
-    return parser.parse_args()    
+
+    return parser.parse_args()
 
 
 #
@@ -159,7 +159,7 @@ def scriptIsRunning(scriptName):
     grepSub = subprocess.Popen(["grep", "-e", "User\|SynapseMain"], stdin=psSub.stdout, stdout=subprocess.PIPE)
     grep2Sub = subprocess.Popen(["grep", "-v", "grep"], stdin=grepSub.stdout, stdout=subprocess.PIPE)
     (output, err) = subprocess.Popen(["cut", "-f1", "-d "], stdin=grep2Sub.stdout, stdout=subprocess.PIPE).communicate()
-    
+
     if output == "":
         return False
     return True
@@ -180,7 +180,7 @@ def fileIsType(imageFileName, typeName):
     if len(words) < 2:
         print "An error occurred attempting to inspect the file type of ", imageFileName
         return False
-    
+
     output = words[1]
     if output.find(typeName) == -1:
         return False
@@ -202,14 +202,14 @@ def imageFileIsSFI(imageFileName):
 
 def extractAndGetNewPath(sfiFileName):
     import bz2, os, shutil, tempfile
-    
+
     basename = os.path.basename(sfiFileName)
-    
+
     #tmpDir = "/tmp/flasher"
     tmpDir = tempfile.mkdtemp()
     #os.makedirs(tmpDir)
     shutil.copy(sfiFileName, tmpDir)
-    
+
     cwd = os.getcwd()
     os.chdir(tmpDir)
     bzipCommand = "bzip2 -dck " + sfiFileName + " > snap.image"
@@ -220,7 +220,7 @@ def extractAndGetNewPath(sfiFileName):
 #
 # Sanity Check - Make sure UserMain/SynapseMain aren't running before we
 #                start, and verify that the image files are the right type.
-# 
+#
 def sanityCheck(args, imageFilePath):
     if userMainIsRunning() is True:
         print "UserMain.py is running.  Please stop UserMain.py before continuing."
@@ -228,7 +228,7 @@ def sanityCheck(args, imageFilePath):
     elif synapseMainIsRunning() is True:
         print "SynapseMain.py is running.  Please stop SynapseMain.py before continuing."
         sys.exit(0)
-        
+
     if args.rf100 is True:
          import RF100Flasher
          if imageFileIsS19(imageFilePath) is False:
@@ -244,7 +244,7 @@ if __name__ == '__main__':
     import sys
 
     args = parseArgs()
-    
+
     if args.erase:
         imageFilePath = createFilesAndFilePaths(args, MAGIC_KEY_CMD_ERASE_SCRIPT)
         print "Erase"
@@ -257,7 +257,7 @@ if __name__ == '__main__':
         else:
             imageFilePath = args.image
         sanityCheck(args, imageFilePath)
-   
+
     warnToKillSnapConnect()
     flashParams = FlashParams(imageFilePath, args.port)
 
@@ -267,7 +267,7 @@ if __name__ == '__main__':
     elif args.rf200 is True:
         import RF200Flasher
         RF200Flasher.flash(flashParams)
-    elif args.rf300 is True:    
+    elif args.rf300 is True:
         import RF300Flasher
         RF300Flasher.flash(flashParams)
     elif args.ss200 is True:

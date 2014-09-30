@@ -98,4 +98,3 @@ if __name__ == '__main__':
     s19 = S19()
     s19.read("\\synapse\\Portal\\trunk\\firmware\\SnapV2.0.25.S19")
     print "file looks good"
-
