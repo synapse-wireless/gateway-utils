@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import subprocess, tempfile, os, array, binascii
 from FlashParams import FlashParams
 
