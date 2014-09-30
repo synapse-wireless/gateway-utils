@@ -75,8 +75,8 @@ class IntelHexReader(object):
         for obj in self.combined_data:
             yield obj
 
-    def read(self, file):
-        self._lines = open(file, 'r').readlines()
+    def read(self, fp):
+        self._lines = fp.readlines()
 
     def writeeof(self, File):
         File.write(":00000001FF\r\n")

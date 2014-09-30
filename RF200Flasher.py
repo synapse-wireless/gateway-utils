@@ -52,7 +52,7 @@ class ATMegaFlasher(object):
     START_ADDRESS = 0
 
     def __init__(self,
-                 filename,
+                 fp,
                  scheduler=None,
                  finishedCallback=None,
                  serialDrv=None,
@@ -105,7 +105,7 @@ class ATMegaFlasher(object):
         self._data_buff = ''
 
         self.image = pyintelhex.IntelHexReader()
-        self.image.read(filename)
+        self.image.read(fp)
         self.image.verify(round=1)
         self._combined_data = None
         self._curr_combined_data = ''
@@ -309,16 +309,14 @@ class ATMegaFlasher(object):
             self.close()
 
 
-def flash(flashParams):
+def flash(fp, comport):
     fmt = '%(asctime)s:%(msecs)03d %(levelname)-8s %(name)-8s %(message)s'
     logging.basicConfig(level=logging.DEBUG,
                         format=fmt,
                         datefmt='%H:%M:%S')
 
     evScheduler = EventScheduler.EventScheduler()
-    flasher = ATMegaFlasher(flashParams.imageFilename,
-                            evScheduler,
-                            port=flashParams.comport)
+    flasher = ATMegaFlasher(fp, evScheduler, port=comport)
     evScheduler.scheduleEvent(flasher.poll)
 
     os.system("sh resetBridge.sh")
