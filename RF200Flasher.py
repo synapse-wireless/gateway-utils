@@ -3,10 +3,12 @@
 __docformat__ = "plaintext en"
 
 
-import logging, binascii, datetime, time, array, struct, os
-
-import sys
-from snapconnect import snap
+import logging
+import datetime
+import time
+import struct
+import os
+from apy import EventScheduler
 
 log = logging.getLogger(__name__)
 if __debug__:
@@ -35,15 +37,6 @@ SUPPORTED_VERSIONS = (1,)
 
 ATMEGA128RFA1_IDENT = "ATmega128RFA1"
 
-class FlashParams:
-    def __init__(self, imageFilename, comport):
-        self.imageFilename = imageFilename
-        self.comport = comport
-
-
-class FlasherError(Exception):
-    pass
-
 
 class ATMegaFlasher(object):
     STATE_IDLE = 0
@@ -68,14 +61,11 @@ class ATMegaFlasher(object):
                  timeout=2,
                  type=PyserialDriver.PyserialWrapper.TYPE_PYSERIAL,
                  port=0,
-                 #pathToUsbLibrary='.',
-                 pathToUsbLibrary='/usr/lib/python2.7/site-packages/serialwrapper',
+                 pathToUsbLibrary='/usr/lib/python2.6/site-packages/serialwrapper',
                  prompt_func=None,
                  info_func=None):
         if serialDrv is None:
             self.serialDrv = PyserialDriver.PyserialWrapper(dllPath=pathToUsbLibrary)
-            #print self.serialDrv
-            #print self.serialDrv.serial
         else:
             self.serialDrv = serialDrv
         assert isinstance(self.serialDrv, PyserialDriver.PyserialWrapper)
@@ -94,10 +84,7 @@ class ATMegaFlasher(object):
         self._retryCntr = 0
         self.finishedCallback = finishedCallback
         self.scheduler = scheduler
-        #assert isinstance(scheduler, EventScheduler.EventScheduler)
         self.scheduler.scheduleEvent(self.poll)
-        self.progressCallbacks = []
-        self.errorCallbacks = []
         self._inClose = False
         self.progress_cntr = 0
         self.prompt_func = prompt_func
@@ -105,21 +92,21 @@ class ATMegaFlasher(object):
         self.finishedSuccessfully = False
 
         self.state = self.STATE_INCOMING_WAIT
-        self.state_handlers = {self.STATE_IDLE: self.handle_idle,
-                               self.STATE_INCOMING_WAIT: self.handle_incoming,
-                               self.STATE_BLOCK_CMD_RESPONSE: self.handle_block_mode,
-                               self.STATE_SIGNATURE_RESPONSE: self.handle_signature,
-                               self.STATE_INFO_RESPONSE: self.handle_info,
-                               self.STATE_ADDRESS_RESPONSE: self.handle_address,
-                               self.STATE_DATA_RESPONSE: self.handle_data,
-                               self.STATE_EXIT_RESPONSE: self.handle_exit}
+        self.state_handlers = {
+            self.STATE_IDLE: self.handle_idle,
+            self.STATE_INCOMING_WAIT: self.handle_incoming,
+            self.STATE_BLOCK_CMD_RESPONSE: self.handle_block_mode,
+            self.STATE_SIGNATURE_RESPONSE: self.handle_signature,
+            self.STATE_INFO_RESPONSE: self.handle_info,
+            self.STATE_ADDRESS_RESPONSE: self.handle_address,
+            self.STATE_DATA_RESPONSE: self.handle_data,
+            self.STATE_EXIT_RESPONSE: self.handle_exit
+        }
         self._data_buff = ''
 
         self.image = pyintelhex.IntelHexReader()
         self.image.read(filename)
         self.image.verify(round=1)
-        #self._combined_crc = image.combine(length=FLASH_PAGE_SIZE, full_size=FLASH_FULL_SIZE)
-        #self._combined_data = image.get_combined_data_generator()
         self._combined_data = None
         self._curr_combined_data = ''
         self._curr_combined_address = 0
@@ -132,11 +119,12 @@ class ATMegaFlasher(object):
         self.last_data = ''
 
     def _check_timeout(self):
-        if self.state != self.STATE_IDLE and datetime.datetime.now()-self._lastData > self.timeout:
+        if (self.state != self.STATE_IDLE and
+           datetime.datetime.now()-self._lastData > self.timeout):
             self.state = self.STATE_TIMEOUT
             self.serialDrv.close()
             log.error("A data timeout has occurred")
-            self._tellError(FlasherError("Data timeout"))
+            self._tellError("Data timeout")
             return False
         return True
 
@@ -149,7 +137,7 @@ class ATMegaFlasher(object):
             self.send_next_data()
             self._data_buff = ''
         else:
-            self._tellError(FlasherError("Unit was unable to change block address"))
+            self._tellError("Unit was unable to change block address")
 
     def handle_block_mode(self):
         try:
@@ -162,7 +150,7 @@ class ATMegaFlasher(object):
             self.block_len = block_len
             self.send_signature_command()
         else:
-            self._tellError(FlasherError("Could not enter block mode"))
+            self._tellError("Could not enter block mode")
         self._data_buff = ''
 
     def handle_data(self):
@@ -175,11 +163,11 @@ class ATMegaFlasher(object):
                 self.send_next_data()
             elif self._retryCntr > self.writeRetries:
                 log.error("Maximum number of retries reached")
-                self._tellError(FlasherError("Maximum number of retries reached"))
+                self._tellError("Maximum number of retries reached")
             else:
-                log.debug("Retrying data, received checksum %i, should be %i" % (received_checksum, data_checksum))
+                log.debug("Retrying data, received checksum %i, should be %i" %
+                          (received_checksum, data_checksum))
                 self._retryCntr += 1
-                #self.send_data(self._curr_combined_data)
                 self.send_set_address(self._curr_combined_address)
             self._data_buff = ''
 
@@ -199,8 +187,8 @@ class ATMegaFlasher(object):
         if self._data_buff == HELLO_INCOMING:
             self.serialDrv.write(HELLO_OUTGOING)
             self.send_block_command()
-            self.scheduler.scheduleEvent(self._check_timeout, delay=self.timeout.seconds)
-            self.update_progess()
+            self.scheduler.scheduleEvent(self._check_timeout,
+                                         delay=self.timeout.seconds)
         else:
             log.info("Did not receive expected hello message")
         self._data_buff = ''
@@ -209,7 +197,7 @@ class ATMegaFlasher(object):
         try:
             (ver, num_blocks) = struct.unpack(">BH", self._data_buff)
         except struct.error:
-            self._tellError(FlasherError("Did not receive supported info message"))
+            self._tellError("Did not receive supported info message")
             return
 
         if ver in SUPPORTED_VERSIONS:
@@ -220,20 +208,21 @@ class ATMegaFlasher(object):
             self._combined_data = self.image.get_combined_data_generator()
             self.max_progress = len(self.image.combined_data)+3
             ihrec = self._combined_data.next()
-            self._lastData = datetime.datetime.now() #Update time just in case the combine took a while
+            # Update time just in case the combine took a while
+            self._lastData = datetime.datetime.now()
 
             self.send_set_address(ihrec.address)
             self._curr_combined_data = ihrec.data
             self._curr_combined_address = ihrec.int_address
         else:
-            self._tellError(FlasherError("Device is running an unsupported version"))
+            self._tellError("Device is running an unsupported version")
         self._data_buff = ''
 
     def handle_signature(self):
         if self._data_buff in SUPPORTED_SIGNATURES:
             self.send_info_command()
         else:
-            self._tellError(FlasherError("Unsupported signature received"))
+            self._tellError("Unsupported signature received")
         self._data_buff = ''
 
     def onRead(self, data):
@@ -245,7 +234,6 @@ class ATMegaFlasher(object):
         pass
 
     def poll(self):
-        #print "%f" % time.clock()
         self.serialDrv.readPoll()
         self.serialDrv.writePoll()
         if self._inClose:
@@ -258,29 +246,21 @@ class ATMegaFlasher(object):
             return False
         return True
 
-    def registerErrorCallback(self, callback):
-        if callable(callback):
-            self.errorCallbacks.append(callback)
-
-    def registerProgressCallback(self, callback):
-        if callable(callback):
-            self.progressCallbacks.append(callback)
-
     def send_block_command(self):
         log.debug("send_block_command")
         self.serialDrv.write(BLOCK_COMMAND)
         self.state = self.STATE_BLOCK_CMD_RESPONSE
-        self.update_progess()
 
     def send_data(self, data):
         log.debug("send_data @%s" % (self._curr_combined_address))
         if isinstance(data, str):
             data = tuple(map(ord, data))
         assert isinstance(data, tuple)
-        self.serialDrv.write(struct.pack(">cHc%dB" % (self.block_len), "B", self.block_len, "F", *data))
+        self.serialDrv.write(struct.pack(">cHc%dB" % (self.block_len),
+                                         "B", self.block_len,
+                                         "F", *data))
         self.state = self.STATE_DATA_RESPONSE
         self.last_data = data
-        self.update_progess()
 
     def send_exit(self):
         log.debug("send_exit")
@@ -291,7 +271,6 @@ class ATMegaFlasher(object):
         log.debug("send_info_command")
         self.serialDrv.write(INFO_COMMAND)
         self.state = self.STATE_INFO_RESPONSE
-        self.update_progess()
 
     def send_next_data(self):
         if not self._curr_combined_data:
@@ -323,72 +302,27 @@ class ATMegaFlasher(object):
         log.debug("send_signature_command")
         self.serialDrv.write(SIGNATURE_COMMAND)
         self.state = self.STATE_SIGNATURE_RESPONSE
-        self.update_progess()
 
-    def _tellError(self, exception, close=True):
-        log.error(str(exception))
-        for callback in self.errorCallbacks:
-            try:
-                callback(exception)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except:
-                log.exception("An error occurred while notifying a callback of an error:")
+    def _tellError(self, msg, close=True):
+        log.error(msg)
         if close:
             self.close()
 
-    def update_progess(self):
-        self.progress_cntr += 1
-        for callback in self.progressCallbacks:
-            try:
-                callback(self.progress_cntr)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except:
-                log.exception("An error occurred while notifying a callback about progress")
-
 
 def flash(flashParams):
-    #import cProfile
-    #import sys
-    #sys.path.append('..')
-    from apy import EventScheduler
+    fmt = '%(asctime)s:%(msecs)03d %(levelname)-8s %(name)-8s %(message)s'
+    logging.basicConfig(level=logging.DEBUG,
+                        format=fmt,
+                        datefmt='%H:%M:%S')
 
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(msecs)03d %(levelname)-8s %(name)-8s %(message)s', datefmt='%H:%M:%S')
-
-#    snapStick = PyserialDriver.PyserialWrapper.TYPE_SNAPSTICK
-#    driver = PyserialDriver.PyserialWrapper(ouputType=snapStick, port=flashParams.comport, dllPath='.')
-
-#    print driver
-#    print driver.serial
-#    resetBridge()
     evScheduler = EventScheduler.EventScheduler()
-    flasher = ATMegaFlasher(flashParams.imageFilename, evScheduler, port=flashParams.comport)
+    flasher = ATMegaFlasher(flashParams.imageFilename,
+                            evScheduler,
+                            port=flashParams.comport)
     evScheduler.scheduleEvent(flasher.poll)
 
     os.system("sh resetBridge.sh")
-    #resetBridge(flasher)
-    #print flasher.serialDrv.serial
-    #dir(flasher.serialDrv.serial)
 
     while flasher.finishedSuccessfully is False:
         evScheduler.poll()
         time.sleep(0.005)
-    #cProfile.run('evScheduler.poll()', "C:\\synapse\\Portal\\trunk\\FlasherProfile.tmp")
-
-if __name__ == '__main__':
-    #import cProfile
-    import sys
-    sys.path.append('..')
-    from apy import EventScheduler
-
-
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s:%(msecs)03d %(levelname)-8s %(name)-8s %(message)s', datefmt='%H:%M:%S')
-
-    evScheduler = EventScheduler.EventScheduler()
-    flasher = ATMegaFlasher(r"ATmega128RFA1.hex", evScheduler, port=0)
-
-    while True:
-        evScheduler.poll()
-        time.sleep(0.005)
-    #cProfile.run('evScheduler.poll()', "C:\\synapse\\Portal\\trunk\\FlasherProfile.tmp")
