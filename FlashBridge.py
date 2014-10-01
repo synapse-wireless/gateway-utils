@@ -3,8 +3,9 @@ import os
 import array
 import binascii
 import RF200Flasher
-import argparse
+import optparse
 import bz2
+import sys
 from cStringIO import StringIO
 
 #
@@ -32,26 +33,30 @@ def parseArgs():
     """Parse the arguments passed in on the command line
     to determine which function to perform"""
 
-    parser = argparse.ArgumentParser(description="""E10 Bridge Flashing Utility
+    parser = optparse.OptionParser(usage="""E10 Bridge Flashing Utility
  Usage:  FlashBridge.py -i [imagename] -p [port]""")
 
-    flashTypeGroup = parser.add_mutually_exclusive_group(required=True)
-    flashTypeGroup.add_argument("-e", "--erase", dest="erase",
-                                action="store_true", required=False,
+    parser.add_option("-e", "--erase", dest="erase", default=False,
+                                action="store_true", 
                                 help="Erase the current SnapPy script.")
-    flashTypeGroup.add_argument("-i", "--image", dest="image",
+    parser.add_option("-i", "--image", dest="image", default=None,
                                 metavar="imageName", action="store",
-                                required=False,
                                 help="The image file to flash.")
-    flashTypeGroup.add_argument("-nv", "--defaultnv", dest="defaultnv",
-                                action="store_true", required=False,
+    parser.add_option("-n", "--defaultnv", dest="defaultnv",
+                                action="store_true", default=False,
                                 help="Reset the device's NV params.")
 
-    parser.add_argument("-p", "--port", dest="port", metavar="comport",
-                        action="store", required=True,
+    parser.add_option("-p", "--port", dest="port", metavar="comport",
+                        action="store", default='/dev/ttyS1',
                         help="Required:  The serial device to use.")
 
-    return parser.parse_args()
+    (options, args) = parser.parse_args()
+    
+    if not (options.erase or options.image or options.defaultnv):
+        print "Must specify either -e, -i, or -n" 
+        sys.exit(1)
+    
+    return options
 
 
 if __name__ == '__main__':
