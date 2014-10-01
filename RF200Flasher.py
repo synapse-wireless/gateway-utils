@@ -17,7 +17,7 @@ if __debug__:
 import pyintelhex
 from serialwrapper import PyserialDriver
 
-HELLO_INCOMING = '\x00\xf9'
+HELLO_INCOMING = '\xf9'
 HELLO_OUTGOING = '\xf6'
 BLOCK_COMMAND = 'b'
 SIGNATURE_COMMAND = 's'
