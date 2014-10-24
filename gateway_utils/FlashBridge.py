@@ -82,7 +82,7 @@ def parse_args():
     return options
 
 
-if __name__ == '__main__':
+def main():
     ARGS = parse_args()
 
     if ARGS.erase:
@@ -105,3 +105,7 @@ if __name__ == '__main__':
             FP = open(ARGS.image, 'rb')
 
     RF200Flasher.flash(FP, ARGS.port)
+
+
+if __name__ == '__main__':
+    main()
