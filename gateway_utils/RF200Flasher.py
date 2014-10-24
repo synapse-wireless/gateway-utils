@@ -25,6 +25,8 @@ import datetime
 import time
 import struct
 import os
+import platform
+
 from apy import EventScheduler
 
 log = logging.getLogger(__name__)
@@ -33,6 +35,7 @@ if __debug__:
 
 import pyintelhex
 from serialwrapper import PyserialDriver
+
 
 HELLO_INCOMING = '\xf9'
 HELLO_OUTGOING = '\xf6'
@@ -336,7 +339,10 @@ def flash(fp, comport):
     flasher = ATMegaFlasher(fp, evScheduler, port=comport)
     evScheduler.scheduleEvent(flasher.poll)
 
-    os.system("sh resetBridge.sh")
+    if platform.machine() == 'armv5tejl':
+        os.system("sh resetBridge.sh")
+    else:
+        print "Reset device to start"
 
     while flasher.finishedSuccessfully is False:
         evScheduler.poll()
