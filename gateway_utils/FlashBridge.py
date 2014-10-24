@@ -18,6 +18,8 @@
 # POSSIBILITY OF SUCH DAMAGES.
 """Upgrades SNAP core, erase script files, and factory defaults
 NVParameters for attached bridge nodes"""
+
+
 import os
 import array
 import binascii
@@ -26,6 +28,7 @@ import optparse
 import bz2
 import sys
 from cStringIO import StringIO
+
 
 # MAGIC KEY related
 MAGIC_KEY_CMD_DEFAULT_NV = 'N'
@@ -71,6 +74,11 @@ def parse_args():
         print "Must specify either -e, -i, or -n"
         sys.exit(1)
 
+    try:
+        options.port = int(options.port )
+    except ValueError:
+        pass
+    
     return options
 
 
