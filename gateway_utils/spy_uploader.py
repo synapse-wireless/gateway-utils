@@ -39,7 +39,7 @@ class SpyUploader:
         self.remote_addr = None
         try:
             _port = int(serial_port)
-        except TypeError:
+        except ValueError:
             _port = serial_port
 
         # Create a SNAP Connect object to do communications (comm) for us
