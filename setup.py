@@ -14,7 +14,7 @@ GIT_HEAD_REV = check_output(shlex.split('git rev-parse --short HEAD')).strip()
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 
 
 setup(name='gateway-utils',
