@@ -60,8 +60,15 @@ class SpyUploader:
     def start_upload(self, remote_addr):
         """Called internally for every upload attempt. You should be calling beginUpload()"""
         self.remote_addr = remote_addr
-        with open(self.filename, 'rb') as f:
-            spy = ScriptsManager.getSnappyStringFromExport(f.read())
+        try:
+            f = open(self.filename, 'rb')
+            try:
+                spy = ScriptsManager.getSnappyStringFromExport(f.read())
+            finally:
+                f.close()
+        except IOError:
+            print "Unable to read SPY file"
+            sys.exit(1)
 
         upload = self.comm.spy_upload_mgr.startUpload(remote_addr, spy)
         upload.registerFinishedCallback(self._upload_finished)
@@ -88,6 +95,9 @@ def main():
 
     if options.filename is None:
         print "A SPY filename is required"
+        sys.exit(1)
+    elif not os.path.isfile(options.filename):
+        print "The SPY file specified does not exist"
         sys.exit(1)
 
     uploader = SpyUploader(options.filename, options.serial_type, options.serial_port)
